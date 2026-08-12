@@ -1,0 +1,33 @@
+{
+  "name": "crosstalk",
+  "owner": {
+    "name": "obeskay",
+    "url": "https://github.com/obeskay"
+  },
+  "metadata": {
+    "description": "Antigravity (Gemini) as a non-blocking peer for Claude Code",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "crosstalk",
+      "source": "./",
+      "description": "Consult Antigravity (Gemini) from Claude Code without blocking, keep the thread across calls, and route the answer to whichever of your sessions needs it.",
+      "version": "1.0.0",
+      "author": {
+        "name": "obeskay",
+        "url": "https://github.com/obeskay"
+      },
+      "homepage": "https://github.com/obeskay/crosstalk",
+      "license": "MIT",
+      "keywords": [
+        "antigravity",
+        "gemini",
+        "agy",
+        "multi-agent",
+        "cross-session-messaging",
+        "claude-code"
+      ]
+    }
+  ]
+}
