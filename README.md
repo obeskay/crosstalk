@@ -1,8 +1,6 @@
 <div align="center">
 
-# crosstalk
-
-**Antigravity (Gemini) as a non-blocking peer for Claude Code.**
+<img src="assets/banner-en.png" alt="crosstalk — Antigravity as a non-blocking peer for Claude Code" width="100%">
 
 Ask a second model without watching a spinner. Keep the thread across calls. Send the answer to whichever of your sessions actually needs it.
 

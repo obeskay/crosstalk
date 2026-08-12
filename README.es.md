@@ -1,8 +1,6 @@
 <div align="center">
 
-# crosstalk
-
-**Antigravity (Gemini) como par no bloqueante para Claude Code.**
+<img src="assets/banner-es.png" alt="crosstalk — Antigravity como par no bloqueante para Claude Code" width="100%">
 
 Consulta a un segundo modelo sin quedarte viendo el spinner. Conserva el hilo entre llamadas. Manda la respuesta a la sesión que de verdad la necesita.
 
