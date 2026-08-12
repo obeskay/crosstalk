@@ -15,18 +15,58 @@ STATE_DIR="${CROSSTALK_STATE_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/crosstal
 THREADS_DIR="$STATE_DIR/threads"
 LEDGER="$STATE_DIR/ledger.jsonl"
 
+TMP_OUT=""
+TMP_ERR=""
+# EXIT, not RETURN: a RETURN trap does not run when die() calls exit, nor when
+# set -e aborts the script, which is exactly when cleanup matters most.
+cleanup() { [ -n "$TMP_OUT" ] && rm -f "$TMP_OUT"; [ -n "$TMP_ERR" ] && rm -f "$TMP_ERR"; return 0; }
+trap cleanup EXIT
+
 die() { printf 'crosstalk: %s\n' "$1" >&2; exit "${2:-1}"; }
+
+# Thread names reach the filesystem, so keep them to a safe alphabet. The
+# hyphen MUST stay last in this set: written as '.-_' it becomes an ASCII range
+# spanning '/', which would let '../..' through into the path.
+safe_name() { printf '%s' "$1" | tr -c '[:alnum:]._-' '_'; }
 
 # One JSON field out of agy's single-line object. python3 then node; both ship
 # with the platforms agy runs on. No jq dependency, no hand-rolled parser.
+# Returns non-zero when the payload is not the JSON we expect, so callers can
+# report that instead of dying silently under set -e.
 json_field() {
   local field=$1 file=$2
   if command -v python3 >/dev/null 2>&1; then
-    python3 -c 'import json,sys;print(json.load(open(sys.argv[1])).get(sys.argv[2],"") or "")' "$file" "$field"
+    python3 -c '
+import json,sys
+v = json.load(open(sys.argv[1])).get(sys.argv[2])
+sys.stdout.write("" if v is None else str(v))
+' "$file" "$field" 2>/dev/null
   elif command -v node >/dev/null 2>&1; then
-    node -e 'const o=require("fs").readFileSync(process.argv[1],"utf8");process.stdout.write(String(JSON.parse(o)[process.argv[2]]??""))' "$file" "$field"
+    node -e '
+const o = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+const v = o[process.argv[2]];
+process.stdout.write(v === undefined || v === null ? "" : String(v));
+' "$file" "$field" 2>/dev/null
   else
     die "need python3 or node to read agy's JSON output"
+  fi
+}
+
+# Same, one level down (usage.total_tokens and friends).
+json_usage() {
+  local field=$1 file=$2
+  if command -v python3 >/dev/null 2>&1; then
+    python3 -c '
+import json,sys
+v = json.load(open(sys.argv[1])).get("usage",{}).get(sys.argv[2])
+sys.stdout.write("" if v is None else str(v))
+' "$file" "$field" 2>/dev/null
+  else
+    node -e '
+const o = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+const v = (o.usage || {})[process.argv[2]];
+process.stdout.write(v === undefined || v === null ? "" : String(v));
+' "$file" "$field" 2>/dev/null
   fi
 }
 
@@ -36,7 +76,7 @@ cmd_ask() {
   shift || true
   while [ $# -gt 0 ]; do
     case $1 in
-      --thread)  thread=${2:?--thread needs a name}; shift 2 ;;
+      --thread)  thread=$(safe_name "${2:?--thread needs a name}"); shift 2 ;;
       --model)   model=${2:?--model needs a value}; shift 2 ;;
       --effort)  effort=${2:?--effort needs a value}; shift 2 ;;
       --timeout) timeout=${2:?--timeout needs a value}; shift 2 ;;
@@ -54,44 +94,49 @@ cmd_ask() {
   local thread_file=""
   if [ -n "$thread" ]; then
     mkdir -p "$THREADS_DIR"
-    thread_file="$THREADS_DIR/$(printf '%s' "$thread" | tr -c '[:alnum:]._-' '_')"
+    thread_file="$THREADS_DIR/$thread"
     if [ -s "$thread_file" ]; then
       args+=(--conversation "$(cat "$thread_file")")
     fi
   fi
 
-  local out; out=$(mktemp)
-  trap 'rm -f "$out"' RETURN
-  if ! agy "${args[@]}" >"$out" 2>"$out.err"; then
+  TMP_OUT=$(mktemp); TMP_ERR=$(mktemp)
+  if ! agy "${args[@]}" >"$TMP_OUT" 2>"$TMP_ERR"; then
     printf 'crosstalk: agy failed\n' >&2
-    sed 's/^/  /' "$out.err" >&2 || true
-    rm -f "$out.err"
+    sed 's/^/  /' "$TMP_ERR" >&2 || true
     return 1
   fi
-  rm -f "$out.err"
 
-  local status; status=$(json_field status "$out")
-  if [ "$status" != "SUCCESS" ]; then
-    die "agy returned status=$status"
+  local status
+  if ! status=$(json_field status "$TMP_OUT"); then
+    printf 'crosstalk: could not parse agy output as JSON. Raw output:\n' >&2
+    head -c 2000 "$TMP_OUT" | sed 's/^/  /' >&2
+    return 1
   fi
 
-  local conv; conv=$(json_field conversation_id "$out")
-  [ -n "$thread_file" ] && [ -n "$conv" ] && printf '%s' "$conv" >"$thread_file"
+  if [ "$status" != "SUCCESS" ]; then
+    # The failure reason lives in `response`; surfacing only the status leaves
+    # the user with nothing to act on.
+    local detail; detail=$(json_field response "$TMP_OUT" 2>/dev/null || true)
+    printf 'crosstalk: agy returned status=%s\n' "${status:-<empty>}" >&2
+    [ -n "$detail" ] && printf '%s\n' "$detail" | sed 's/^/  /' >&2
+    return 1
+  fi
 
-  json_field response "$out"
+  local conv; conv=$(json_field conversation_id "$TMP_OUT" 2>/dev/null || true)
+  if [ -n "$thread_file" ] && [ -n "$conv" ]; then
+    printf '%s' "$conv" >"$thread_file" 2>/dev/null \
+      || printf 'crosstalk: could not persist thread "%s"\n' "$thread" >&2
+  fi
+
+  json_field response "$TMP_OUT"
 
   # Ledger: what this call cost, so the skill can report what was offloaded.
+  # `thread` is already sanitised to [alnum._-], so it cannot break the JSON.
   local total dur turns
-  total=$(json_field total_tokens "$out"); dur=$(json_field duration_seconds "$out"); turns=$(json_field num_turns "$out")
-  if [ -z "$total" ]; then
-    total=$(
-      if command -v python3 >/dev/null 2>&1; then
-        python3 -c 'import json,sys;print(json.load(open(sys.argv[1])).get("usage",{}).get("total_tokens",0))' "$out"
-      else
-        node -e 'const o=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"));process.stdout.write(String(o.usage?.total_tokens??0))' "$out"
-      fi
-    )
-  fi
+  total=$(json_usage total_tokens "$TMP_OUT" 2>/dev/null || true)
+  dur=$(json_field duration_seconds "$TMP_OUT" 2>/dev/null || true)
+  turns=$(json_field num_turns "$TMP_OUT" 2>/dev/null || true)
   mkdir -p "$STATE_DIR"
   printf '{"thread":"%s","tokens":%s,"seconds":%s,"turns":%s}\n' \
     "${thread:-adhoc}" "${total:-0}" "${dur:-0}" "${turns:-0}" >>"$LEDGER"
@@ -105,11 +150,19 @@ cmd_stats() {
   if command -v python3 >/dev/null 2>&1; then
     python3 - "$LEDGER" <<'PY'
 import json,sys
-calls=[json.loads(l) for l in open(sys.argv[1]) if l.strip()]
-tok=sum(c.get("tokens",0) for c in calls); sec=sum(c.get("seconds",0) for c in calls)
+calls=[]
+for line in open(sys.argv[1]):
+    line=line.strip()
+    if not line: continue
+    try: calls.append(json.loads(line))
+    except ValueError: continue          # a corrupt line must not kill the report
+if not calls:
+    print("no readable calls in the ledger"); raise SystemExit
+tok=sum(c.get("tokens") or 0 for c in calls); sec=sum(c.get("seconds") or 0 for c in calls)
 print(f"{len(calls)} calls, {tok:,} tokens offloaded to Gemini, {sec:.0f}s of work")
 by={}
-for c in calls: by[c.get("thread","adhoc")]=by.get(c.get("thread","adhoc"),0)+c.get("tokens",0)
+for c in calls:
+    t=c.get("thread","adhoc"); by[t]=by.get(t,0)+(c.get("tokens") or 0)
 for t,n in sorted(by.items(),key=lambda x:-x[1])[:10]: print(f"  {n:>10,}  {t}")
 PY
   else
@@ -119,16 +172,21 @@ PY
 
 cmd_threads() {
   [ -d "$THREADS_DIR" ] || { echo "no threads yet"; return 0; }
-  for f in "$THREADS_DIR"/*; do
-    [ -e "$f" ] || continue
+  local found=0 f
+  # (*) misses dotfiles, and '.' is a legal thread character.
+  for f in "$THREADS_DIR"/* "$THREADS_DIR"/.[!.]*; do
+    [ -f "$f" ] || continue
+    found=1
     printf '%-28s %s\n' "$(basename "$f")" "$(cat "$f")"
   done
+  [ "$found" -eq 1 ] || echo "no threads yet"
 }
 
 cmd_reset() {
   if [ -n "${1:-}" ]; then
-    rm -f "$THREADS_DIR/$(printf '%s' "$1" | tr -c '[:alnum:]._-' '_')"
-    echo "thread '$1' reset"
+    local name; name=$(safe_name "$1")
+    rm -f "$THREADS_DIR/$name"
+    echo "thread '$name' reset"
   else
     rm -rf "$THREADS_DIR"
     echo "all threads reset"
