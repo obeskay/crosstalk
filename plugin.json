@@ -1,6 +1,6 @@
 {
   "name": "crosstalk",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Consult Antigravity (Gemini) from Claude Code without blocking, keep the thread across calls, and route the answer to whichever of your sessions needs it.",
   "author": {
     "name": "obeskay",

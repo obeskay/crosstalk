@@ -52,7 +52,9 @@ Si lo que quieres es ruteo de modelos opinado a lo largo del ciclo de vida, usa 
 
 Son dos prompts separados — si los pegas juntos, la instalación no funciona.
 
-O usa la skill sin el plugin: copia `skills/crosstalk/` a `~/.claude/skills/` y `scripts/crosstalk.sh` a cualquier lugar de tu `PATH`.
+O usa la skill sin el plugin: copia `skills/crosstalk/` a `~/.claude/skills/`. El script viaja dentro del directorio de la skill, así que esa copia es toda la instalación.
+
+En cualquier caso, **abre una sesión nueva después** — Claude Code carga las skills al iniciar sesión.
 
 ## Requisitos
 

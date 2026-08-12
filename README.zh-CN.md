@@ -52,7 +52,9 @@ crosstalk 改变的是交互的形态，而不是底层管道：
 
 必须分两次发送——粘在一起发送会安装失败。
 
-也可以不装插件、只用这个 skill：把 `skills/crosstalk/` 复制到 `~/.claude/skills/`，把 `scripts/crosstalk.sh` 放到 `PATH` 上的任意位置。
+也可以不装插件、只用这个 skill：把 `skills/crosstalk/` 复制到 `~/.claude/skills/` 即可。脚本就放在 skill 目录内，复制这一份就是完整安装。
+
+无论用哪种方式，**装完请开一个新会话**——Claude Code 在会话启动时加载 skills。
 
 ## 环境要求
 

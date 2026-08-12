@@ -52,7 +52,9 @@ If you want opinionated model routing across the software lifecycle, use `antigr
 
 Two separate prompts — the install does not work if you paste them together.
 
-Or use the skill without the plugin: copy `skills/crosstalk/` into `~/.claude/skills/` and `scripts/crosstalk.sh` anywhere on your `PATH`.
+Or use the skill without the plugin: copy `skills/crosstalk/` into `~/.claude/skills/`. The script ships inside the skill directory, so that one copy is the whole install.
+
+Either way, **start a new session afterwards** — Claude Code loads skills at session start.
 
 ## Requirements
 

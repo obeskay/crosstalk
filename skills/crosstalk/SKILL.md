@@ -7,7 +7,7 @@ description: Consult Antigravity (Gemini) from Claude Code without blocking, and
 
 Antigravity (Gemini) runs as a separate CLI (`agy`). This skill makes it a peer you consult, with the thread kept across calls, and the answer delivered where it is useful.
 
-`scripts/crosstalk.sh` is in this skill's directory. Call it with an absolute path.
+`crosstalk.sh` sits next to this file. Call it with an absolute path — resolve it from this skill's own directory rather than assuming a working directory.
 
 ## Decide first: is this worth another model?
 
@@ -22,7 +22,7 @@ Do not consult when the task depends on what only this session knows — uncommi
 ## Ask
 
 ```bash
-/abs/path/to/scripts/crosstalk.sh ask "<prompt>" --thread <name>
+/abs/path/to/skills/crosstalk/crosstalk.sh ask "<prompt>" --thread <name>
 ```
 
 `--thread <name>` resumes the same Gemini conversation next time you use that name, so a follow-up does not re-explain the problem. Use one thread per topic (`auth-refactor`, not `question-3`). Drop the flag for a one-off.
