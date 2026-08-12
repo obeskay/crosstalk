@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/banner-es.png" alt="crosstalk — Antigravity como par no bloqueante para Claude Code" width="100%">
+<img src="assets/banner-es.jpg" alt="crosstalk — Antigravity como par no bloqueante para Claude Code" width="100%">
 
 Consulta a un segundo modelo sin quedarte viendo el spinner. Conserva el hilo entre llamadas. Manda la respuesta a la sesión que de verdad la necesita.
 

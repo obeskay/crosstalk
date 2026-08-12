@@ -1,6 +1,8 @@
 # Brand
 
-The name is the concept. In electronics, *crosstalk* is signal coupling between adjacent traces — two channels that end up talking to each other. The mark draws exactly that: a warm trace and a cool one, with a dashed coupling jumping between them.
+The name is the concept. In electronics, *crosstalk* is signal coupling between adjacent traces — two channels that end up talking to each other. The banner shows exactly that: a warm trace and a cool one running into a board, with interference fringes bleeding between them.
+
+The background (`artwork.jpg`) is generated; the type is drawn over it in HTML, never baked into the image. That split is deliberate — it is what keeps the wordmark pixel-identical across languages and crisp at any size, instead of hoping an image model spells three languages correctly.
 
 ## Palette
 

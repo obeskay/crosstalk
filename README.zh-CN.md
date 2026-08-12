@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/banner-zh.png" alt="crosstalk — 让 Antigravity 成为 Claude Code 的非阻塞协作伙伴" width="100%">
+<img src="assets/banner-zh.jpg" alt="crosstalk — 让 Antigravity 成为 Claude Code 的非阻塞协作伙伴" width="100%">
 
 咨询第二个模型时不必盯着转圈。跨调用保持同一对话线程。把答案送到真正需要它的那个会话。
 
