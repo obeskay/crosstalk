@@ -31,42 +31,27 @@ safe_name() { printf '%s' "$1" | tr -c '[:alnum:]._-' '_'; }
 
 # One JSON field out of agy's single-line object. python3 then node; both ship
 # with the platforms agy runs on. No jq dependency, no hand-rolled parser.
-# Returns non-zero when the payload is not the JSON we expect, so callers can
-# report that instead of dying silently under set -e.
+# Supports dotted keys (e.g. usage.total_tokens). Returns non-zero when the
+# payload is not the JSON we expect, so callers can report that instead of dying
+# silently under set -e.
 json_field() {
   local field=$1 file=$2
   if command -v python3 >/dev/null 2>&1; then
     python3 -c '
 import json,sys
-v = json.load(open(sys.argv[1])).get(sys.argv[2])
+v = json.load(open(sys.argv[1]))
+for k in sys.argv[2].split("."):
+    v = v.get(k) if isinstance(v, dict) else None
 sys.stdout.write("" if v is None else str(v))
 ' "$file" "$field" 2>/dev/null
   elif command -v node >/dev/null 2>&1; then
     node -e '
 const o = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
-const v = o[process.argv[2]];
+const v = process.argv[2].split(".").reduce((a, k) => (a && typeof a === "object" ? a[k] : undefined), o);
 process.stdout.write(v === undefined || v === null ? "" : String(v));
 ' "$file" "$field" 2>/dev/null
   else
     die "need python3 or node to read agy's JSON output"
-  fi
-}
-
-# Same, one level down (usage.total_tokens and friends).
-json_usage() {
-  local field=$1 file=$2
-  if command -v python3 >/dev/null 2>&1; then
-    python3 -c '
-import json,sys
-v = json.load(open(sys.argv[1])).get("usage",{}).get(sys.argv[2])
-sys.stdout.write("" if v is None else str(v))
-' "$file" "$field" 2>/dev/null
-  else
-    node -e '
-const o = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
-const v = (o.usage || {})[process.argv[2]];
-process.stdout.write(v === undefined || v === null ? "" : String(v));
-' "$file" "$field" 2>/dev/null
   fi
 }
 
@@ -134,7 +119,7 @@ cmd_ask() {
   # Ledger: what this call cost, so the skill can report what was offloaded.
   # `thread` is already sanitised to [alnum._-], so it cannot break the JSON.
   local total dur turns
-  total=$(json_usage total_tokens "$TMP_OUT" 2>/dev/null || true)
+  total=$(json_field usage.total_tokens "$TMP_OUT" 2>/dev/null || true)
   dur=$(json_field duration_seconds "$TMP_OUT" 2>/dev/null || true)
   turns=$(json_field num_turns "$TMP_OUT" 2>/dev/null || true)
   mkdir -p "$STATE_DIR"
@@ -193,10 +178,23 @@ cmd_reset() {
   fi
 }
 
+cmd_help() {
+  cat <<'EOF'
+crosstalk — ask Antigravity (Gemini) a question from anywhere, keep the thread.
+
+Usage:
+  crosstalk.sh ask "<prompt>" [--thread NAME] [--model M] [--effort low|medium|high] [--timeout DUR]
+  crosstalk.sh stats
+  crosstalk.sh threads
+  crosstalk.sh reset [NAME]
+EOF
+}
+
 case "${1:-}" in
-  ask)     shift; cmd_ask "$@" ;;
-  stats)   cmd_stats ;;
-  threads) cmd_threads ;;
-  reset)   shift; cmd_reset "${1:-}" ;;
-  *) die "usage: crosstalk.sh {ask|stats|threads|reset}" 2 ;;
+  ask)            shift; cmd_ask "$@" ;;
+  stats)          cmd_stats ;;
+  threads)        cmd_threads ;;
+  reset)          shift; cmd_reset "${1:-}" ;;
+  help|--help|-h) cmd_help ;;
+  *) die "usage: crosstalk.sh {ask|stats|threads|reset|--help}" 2 ;;
 esac
