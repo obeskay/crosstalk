@@ -107,7 +107,7 @@ Flags: `--thread NAME`, `--model M`, `--effort low|medium|high`, `--timeout DUR`
 
 `agy -p --output-format json` returns `conversation_id`, `status`, `response` and `usage`. crosstalk stores the conversation id per thread name and passes it back with `--conversation` on the next call, which is what makes a follow-up cheap. Everything else is Claude Code's own documented surface: background Bash for the non-blocking part, `ListAgents` and `SendMessage` for the routing.
 
-State lives in `$XDG_STATE_HOME/crosstalk` (`~/.local/state/crosstalk`). Two files: conversation ids, and a JSONL ledger of what each call cost. Override with `CROSSTALK_STATE_DIR`. Nothing is sent anywhere except to `agy` itself.
+State lives in `$XDG_STATE_HOME/crosstalk` (`~/.local/state/crosstalk`). Two things: conversation ids, and a JSONL ledger of what each call cost. Override with `CROSSTALK_STATE_DIR`. Nothing is sent anywhere except to `agy` itself.
 
 ## Limitations
 
