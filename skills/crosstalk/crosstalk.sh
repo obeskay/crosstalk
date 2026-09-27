@@ -158,8 +158,9 @@ PY
 cmd_threads() {
   [ -d "$THREADS_DIR" ] || { echo "no threads yet"; return 0; }
   local found=0 f
-  # (*) misses dotfiles, and '.' is a legal thread character.
-  for f in "$THREADS_DIR"/* "$THREADS_DIR"/.[!.]*; do
+  # (*) misses dotfiles, and '.' is a legal thread character; ..?* catches the
+  # '..'-prefixed names safe_name makes out of '../x'.
+  for f in "$THREADS_DIR"/* "$THREADS_DIR"/.[!.]* "$THREADS_DIR"/..?*; do
     [ -f "$f" ] || continue
     found=1
     printf '%-28s %s\n' "$(basename "$f")" "$(cat "$f")"
