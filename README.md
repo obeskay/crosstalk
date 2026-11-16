@@ -12,11 +12,17 @@ English · [Español](README.es.md) · [中文](README.zh-CN.md)
 
 </div>
 
+<p align="center">
+  <img src="docs/media/ask.gif" alt="A terminal running two crosstalk calls on one thread, then crosstalk stats" width="100%">
+  <br>
+  <sub>A real session: two calls on one thread, then <code>stats</code>. The model waits are cut from the clip; the output is verbatim.</sub>
+</p>
+
 ---
 
 ## The problem
 
-Every Claude-to-Gemini bridge available today is **blocking**. Claude shells out to `agy`, and then everyone waits — you, the model, the terminal — while a second model reads a codebase for four minutes. Delegation that costs you four minutes of wall clock is not delegation. It is a slow tool call.
+The usual Claude-to-Gemini bridge is **blocking**. Claude shells out to `agy`, and then everyone waits — you, the model, the terminal — while a second model reads a codebase for four minutes. Delegation that costs you four minutes of wall clock is not delegation. It is a slow tool call.
 
 crosstalk fixes the shape of the interaction, not the plumbing:
 

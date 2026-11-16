@@ -12,11 +12,17 @@ Consulta a un segundo modelo sin quedarte viendo el spinner. Conserva el hilo en
 
 </div>
 
+<p align="center">
+  <img src="docs/media/ask.gif" alt="Una terminal con dos llamadas de crosstalk en el mismo hilo y luego crosstalk stats" width="100%">
+  <br>
+  <sub>Una sesión real: dos llamadas en el mismo hilo y luego <code>stats</code>. Las esperas del modelo están recortadas; la salida es literal.</sub>
+</p>
+
 ---
 
 ## El problema
 
-Todos los puentes Claude→Gemini que existen hoy son **bloqueantes**. Claude invoca `agy` y entonces todos esperan — tú, el modelo, la terminal — mientras un segundo modelo se lee un repo durante cuatro minutos. Delegar algo que te cuesta cuatro minutos de reloj no es delegar. Es una llamada a herramienta lenta.
+El puente Claude→Gemini habitual es **bloqueante**. Claude invoca `agy` y entonces todos esperan — tú, el modelo, la terminal — mientras un segundo modelo se lee un repo durante cuatro minutos. Delegar algo que te cuesta cuatro minutos de reloj no es delegar. Es una llamada a herramienta lenta.
 
 crosstalk cambia la forma de la interacción, no la plomería:
 
